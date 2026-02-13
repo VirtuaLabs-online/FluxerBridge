@@ -2,7 +2,7 @@
   "name": "discord-fluxer-bridge",
   "version": "1.0.0",
   "license": "CC BY-NC 4.0",
-  "author": "VirtuaLabs <hello@virtualabs.cloud> (https://virtualabs.cloud)
+  "author": "VirtuaLabs <hello@virtualabs.cloud> (https://virtualabs.cloud)",
   "description": "Simple one-way message bridge from Discord to Fluxer",
   "main": "discord-fluxer-bridge.js",
   "type": "module",
@@ -16,8 +16,6 @@
     "bridge",
     "bot"
   ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
     "@discordjs/core": "^1.1.1",
     "@discordjs/rest": "^2.2.0",
