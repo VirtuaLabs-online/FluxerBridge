@@ -5,11 +5,17 @@ A simple, lightweight bot that forwards messages between Discord and Fluxer chan
 ## Features
 
 ✅ **Multi-channel support** - Bridge multiple Discord channels to multiple Fluxer channels
+
 ✅ **Directional control** - Choose Discord→Fluxer, Fluxer→Discord, or bidirectional per mapping
+
 ✅ **Per-channel formatting** - Customize username display, avatar, and timestamp
+
 ✅ **Embed forwarding** - Passes through embeds in both directions
+
 ✅ **Attachment links** - Includes attachments in messages
+
 ✅ **Bot message filtering** - Prevents loops
+
 ✅ **Error handling** - Graceful rate limit handling
 
 ## Planned Features
