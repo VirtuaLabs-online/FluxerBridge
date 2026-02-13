@@ -1,0 +1,30 @@
+{
+  "name": "discord-fluxer-bridge",
+  "version": "1.0.0",
+  "description": "Simple one-way message bridge from Discord to Fluxer",
+  "main": "discord-fluxer-bridge.js",
+  "type": "module",
+  "scripts": {
+    "start": "node discord-fluxer-bridge.js",
+    "dev": "node --watch discord-fluxer-bridge.js"
+  },
+  "keywords": [
+    "discord",
+    "fluxer",
+    "bridge",
+    "bot"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@discordjs/core": "^1.1.1",
+    "@discordjs/rest": "^2.2.0",
+    "@discordjs/ws": "^1.0.2",
+    "discord-api-types": "^0.37.74",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

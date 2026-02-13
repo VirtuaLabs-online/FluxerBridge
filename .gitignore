@@ -1,0 +1,35 @@
+# Environment variables (contains secrets!)
+.env
+config.json
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Build outputs
+dist/
+build/

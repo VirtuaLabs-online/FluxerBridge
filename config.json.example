@@ -1,0 +1,42 @@
+{
+  "defaultFormatting": {
+    "includeUsername": false,
+    "includeAvatar": false,
+    "timestampFormat": "none"
+  },
+  "mappings": [
+    {
+      "discordId": "123456789012345678",
+      "fluxerId": "987654321098765432",
+      "direction": "both",
+      "label": "general-chat",
+      "formatting": {
+        "includeUsername": true,
+        "includeAvatar": true,
+        "timestampFormat": "relative"
+      }
+    },
+    {
+      "discordId": "223456789012345678",
+      "fluxerId": "887654321098765432",
+      "direction": "d2f",
+      "label": "announcements",
+      "formatting": {
+        "includeUsername": false,
+        "includeAvatar": true,
+        "timestampFormat": "absolute"
+      }
+    },
+    {
+      "discordId": "323456789012345678",
+      "fluxerId": "787654321098765432",
+      "direction": "f2d",
+      "label": "support",
+      "formatting": {
+        "includeUsername": true,
+        "includeAvatar": false,
+        "timestampFormat": "none"
+      }
+    }
+  ]
+}
