@@ -23,6 +23,7 @@ function loadConfig() {
                     fluxerId: "987654321098765432",
                     direction: "both",
                     label: "my-channel",
+                    allowCrossposts: true,
                     formatting: {
                         includeUsername: true,
                         includeAvatar: true,
@@ -84,10 +85,11 @@ function loadConfig() {
         }
 
         return {
-            discordId:  m.discordId.trim(),
-            fluxerId:   m.fluxerId.trim(),
-            direction:  VALID_DIRECTIONS.includes(direction) ? direction : 'd2f',
-            label:      m.label ?? null,
+            discordId:        m.discordId.trim(),
+            fluxerId:         m.fluxerId.trim(),
+            direction:        VALID_DIRECTIONS.includes(direction) ? direction : 'd2f',
+            label:            m.label ?? null,
+            allowCrossposts:  Boolean(m.allowCrossposts ?? false),
             formatting: {
                 includeUsername: Boolean(fmt.includeUsername),
                 includeAvatar:   Boolean(fmt.includeAvatar),
@@ -106,10 +108,17 @@ const fluxerToDiscord = new Map();
 
 CONFIG.mappings.forEach(m => {
     if (m.direction === 'd2f' || m.direction === 'both') {
-        discordToFluxer.set(m.discordId, { fluxerId: m.fluxerId, formatting: m.formatting });
+        discordToFluxer.set(m.discordId, { 
+            fluxerId: m.fluxerId, 
+            formatting: m.formatting,
+            allowCrossposts: m.allowCrossposts
+        });
     }
     if (m.direction === 'f2d' || m.direction === 'both') {
-        fluxerToDiscord.set(m.fluxerId, { discordId: m.discordId, formatting: m.formatting });
+        fluxerToDiscord.set(m.fluxerId, { 
+            discordId: m.discordId, 
+            formatting: m.formatting
+        });
     }
 });
 
@@ -344,7 +353,8 @@ discordClient.on('clientReady', () => {
         const arrow = m.direction === 'd2f' ? '→' : m.direction === 'f2d' ? '←' : '↔';
         const label = m.label ? ` [${m.label}]` : '';
         const fmt   = `username=${m.formatting.includeUsername}, avatar=${m.formatting.includeAvatar}, ts=${m.formatting.timestampFormat}`;
-        console.log(`   ${i + 1}. Discord ${m.discordId} ${arrow} Fluxer ${m.fluxerId}${label} (${fmt})`);
+        const xpost = m.allowCrossposts ? ', crossposts=✓' : '';
+        console.log(`   ${i + 1}. Discord ${m.discordId} ${arrow} Fluxer ${m.fluxerId}${label} (${fmt}${xpost})`);
     });
     console.log('✅ Bridge is active!\n');
 });
@@ -353,10 +363,21 @@ discordClient.on('clientReady', () => {
 discordClient.on('messageCreate', async (message) => {
     const route = discordToFluxer.get(message.channelId);
     if (!route) return;
-    if (message.author.bot) return;
+    
+    // Check if this is a crosspost (followed announcement)
+    const isCrosspost = message.flags?.has('IsCrosspost');
+    
+    // Filter out bot messages unless they're crossposts AND crossposts are allowed
+    if (message.author.bot) {
+        if (!isCrosspost || !route.allowCrossposts) {
+            return;
+        }
+    }
+    
     if (!message.content && message.embeds.length === 0 && message.attachments.size === 0) return;
 
-    console.log(`📨 [Discord ${message.channelId} → Fluxer ${route.fluxerId}] ${message.author.username}: ${message.content.substring(0, 50)}`);
+    const msgType = isCrosspost ? '[CROSSPOST] ' : '';
+    console.log(`📨 ${msgType}[Discord ${message.channelId} → Fluxer ${route.fluxerId}] ${message.author.username}: ${message.content.substring(0, 50)}`);
 
     const avatarUrl   = getDiscordAvatarUrl(message.author);
     const attachments = Array.from(message.attachments.values()).map(a => ({ name: a.name, url: a.url }));
