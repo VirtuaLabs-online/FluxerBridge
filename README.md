@@ -12,6 +12,12 @@ A simple, lightweight bot that forwards messages between Discord and Fluxer chan
 ✅ **Bot message filtering** - Prevents loops
 ✅ **Error handling** - Graceful rate limit handling
 
+## Planned Features
+* **Decentralized setup** - one bot for multiple guilds
+* **Database Integration** - Honestly a no-brainer with decentralization
+* **role based lockdown** - only specific roles messages will be forwarded
+* **pre-hosted /w Web Dashboard** - just invite the bot and you are good to go!
+
 ## Prerequisites
 
 * **Node.js 18+** installed
