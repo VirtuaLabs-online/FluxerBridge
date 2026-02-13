@@ -1,6 +1,6 @@
 {
   "name": "discord-fluxer-bridge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "CC BY-NC 4.0",
   "author": "VirtuaLabs <hello@virtualabs.cloud> (https://virtualabs.cloud)",
   "description": "Simple one-way message bridge from Discord to Fluxer",
