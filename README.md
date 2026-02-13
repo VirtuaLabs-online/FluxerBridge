@@ -1,4 +1,4 @@
-# Discord → Fluxer Message Bridge
+# Discord <-> Fluxer Message Bridge
 
 A simple, lightweight bot that forwards messages between Discord and Fluxer channels using a JSON-based configuration.
 
