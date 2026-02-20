@@ -122,6 +122,11 @@ CONFIG.mappings.forEach(m => {
     }
 });
 
+const MessageType = {
+    CREATED: 0,
+    EDITED: 1
+}
+
 // ============================================
 // FLUXER CLIENT
 // ============================================
@@ -188,7 +193,7 @@ function getFluxerAvatarUrl(user) {
 /**
  * Build a timestamp suffix string for appending to content.
  */
-function buildTimestampSuffix(createdTimestamp, isoTimestamp, timestampFormat) {
+function buildTimestampSuffix(createdTimestamp, isoTimestamp, timestampFormat, messageType) {
     if (timestampFormat === 'none') return '';
 
     const ts = createdTimestamp != null
@@ -196,7 +201,14 @@ function buildTimestampSuffix(createdTimestamp, isoTimestamp, timestampFormat) {
         : isoTimestamp ? Math.floor(new Date(isoTimestamp).getTime() / 1000) : null;
 
     if (ts == null) return '';
-    return timestampFormat === 'relative' ? `\n*<t:${ts}:R>*` : `\n*<t:${ts}:F>*`;
+    const timestampEncoding = timestampFormat === 'relative' ? `*<t:${ts}:R>*` : `*<t:${ts}:F>*`;
+
+    switch (messageType) {
+        case MessageType.EDITED:
+            return `\n**Edited** ${timestampEncoding}`
+        default:
+            return `\n${timestampEncoding}`
+    }
 }
 
 /**
@@ -222,8 +234,8 @@ function appendAttachments(baseContent, attachments) {
  * With both false:
  *   → Plain content only.
  */
-function buildPayload({ username, avatarUrl, content, existingEmbeds, formatting, createdTimestamp, isoTimestamp, direction }) {
-    const tsSuffix    = buildTimestampSuffix(createdTimestamp, isoTimestamp, formatting.timestampFormat);
+function buildPayload({ username, avatarUrl, content, existingEmbeds, formatting, createdTimestamp, isoTimestamp, direction, messageType }) {
+    const tsSuffix    = buildTimestampSuffix(createdTimestamp, isoTimestamp, formatting.timestampFormat, messageType);
     const fullContent = content + tsSuffix;
 
     if (formatting.includeAvatar) {
@@ -311,6 +323,24 @@ async function sendToDiscord(discordChannelId, payload) {
 }
 
 // ============================================
+// OTHER HELPERS
+// ============================================
+
+function getCrosspostFlag(message) {
+    return message.flags?.has('IsCrosspost');
+}
+
+function shouldFilterOutMessage(route, message) {
+    if (message.author.bot) {
+        if (!getCrosspostFlag(message) || !route.allowCrossposts) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ============================================
 // EVENT HANDLERS
 // ============================================
 
@@ -345,6 +375,39 @@ fluxerClient.on(GatewayDispatchEvents.MessageCreate, async ({ data: message }) =
     await sendToDiscord(route.discordId, payload);
 });
 
+fluxerClient.on(GatewayDispatchEvents.MessageUpdate, async ({ data: newMessage }) => {
+    console.log(newMessage);
+    const route = fluxerToDiscord.get(newMessage.channel_id);
+    console.log(route);
+    if (!route) return;
+    if (newMessage.author.bot) return;
+    if (!newMessage.content && !newMessage.embeds?.length && !newMessage.attachments?.length) return;
+
+    // TODO: maybe properly get previous message by caching, or using better api
+    const oldMessage = {
+        content: "[previous message not recorded]"
+    };
+
+    const avatarUrl   = getFluxerAvatarUrl(newMessage.author);
+    const attachments = newMessage.attachments ?? [];
+
+    console.log(`📨 [Edited][Fluxer ${newMessage.channel_id} → Discord ${route.discordId}] ${newMessage.author.username}: ${newMessage.content.substring(0, 50)}`);
+
+    const payload = buildPayload({
+        username:           newMessage.author.username,
+        avatarUrl,
+        content:            appendAttachments(`~~${oldMessage.content}~~ ${newMessage.content}`, attachments),
+        existingEmbeds:     newMessage.embeds,
+        formatting:         route.formatting,
+        createdTimestamp:   null,
+        isoTimestamp:       newMessage.timestamp,
+        direction:          'toDiscord',
+        messageType:        MessageType.EDITED
+    });
+
+    await sendToDiscord(route.discordId, payload);
+})
+
 // Discord ready
 discordClient.on('clientReady', () => {
     console.log(`🤖 Discord bot logged in as ${discordClient.user.tag}`);
@@ -365,14 +428,10 @@ discordClient.on('messageCreate', async (message) => {
     if (!route) return;
     
     // Check if this is a crosspost (followed announcement)
-    const isCrosspost = message.flags?.has('IsCrosspost');
+    const isCrosspost = getCrosspostFlag(message);
     
     // Filter out bot messages unless they're crossposts AND crossposts are allowed
-    if (message.author.bot) {
-        if (!isCrosspost || !route.allowCrossposts) {
-            return;
-        }
-    }
+    if (shouldFilterOutMessage(route, message)) return;
     
     if (!message.content && message.embeds.length === 0 && message.attachments.size === 0) return;
 
@@ -395,6 +454,37 @@ discordClient.on('messageCreate', async (message) => {
 
     await sendToFluxer(route.fluxerId, payload);
 });
+
+discordClient.on('messageUpdate', async (oldMessage, newMessage) => {
+    const route = discordToFluxer.get(newMessage.channelId);
+    if (!route) return;
+
+    const avatarUrl   = getDiscordAvatarUrl(newMessage.author);
+    const attachments = Array.from(newMessage.attachments.values()).map(a => ({ name: a.name, url: a.url }));
+
+    // Check if this is a crosspost (followed announcement)
+    const isCrosspost = getCrosspostFlag(newMessage);
+    
+    // Filter out bot messages unless they're crossposts AND crossposts are allowed
+    if (shouldFilterOutMessage(route, newMessage)) return;
+
+    const msgType = isCrosspost ? '[CROSSPOST] ' : '';
+    console.log(`📨 ${msgType}[Edited][Discord ${newMessage.channelId} → Fluxer ${route.fluxerId}] ${newMessage.author.username}: ${newMessage.content.substring(0, 50)}`);
+
+    const payload = buildPayload({
+        username:           newMessage.author.username,
+        avatarUrl,
+        content:            appendAttachments(`~~${oldMessage.content}~~ ${newMessage.content}`, attachments),
+        existingEmbeds:     newMessage.embeds.length > 0 ? convertEmbeds(newMessage.embeds) : [],
+        formatting:         route.formatting,
+        createdTimestamp:   newMessage.createdTimestamp,
+        isoTimestamp:       null,
+        direction:          'toFluxer',
+        messageType:        MessageType.EDITED
+    });
+
+    await sendToFluxer(route.fluxerId, payload);
+})
 
 discordClient.on('error', (error) => console.error('Discord client error:', error));
 
